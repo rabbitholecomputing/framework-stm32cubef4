@@ -7,6 +7,6 @@
     "st"
   ],
   "name": "framework-stm32cubef4",
-  "version": "1.26.2",
+  "version": "1.26.3",
   "homepage": "https://github.com/STMicroelectronics/STM32CubeF4"
 }
