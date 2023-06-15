@@ -88,10 +88,6 @@
      (+) Pause the DMA Transfer using HAL_I2S_DMAPause()
      (+) Resume the DMA Transfer using HAL_I2S_DMAResume()
      (+) Stop the DMA Transfer using HAL_I2S_DMAStop()
-         In Slave mode, if HAL_I2S_DMAStop is used to stop the communication, an error
-         HAL_I2S_ERROR_BUSY_LINE_RX is raised as the master continue to transmit data.
-         In this case __HAL_I2S_FLUSH_RX_DR macro must be used to flush the remaining data
-         inside DR register and avoid using DeInit/Init process for the next transfer.
 
    *** I2S HAL driver macros list ***
    ===================================
@@ -103,7 +99,6 @@
       (+) __HAL_I2S_ENABLE_IT : Enable the specified I2S interrupts
       (+) __HAL_I2S_DISABLE_IT : Disable the specified I2S interrupts
       (+) __HAL_I2S_GET_FLAG: Check whether the specified I2S flag is set or not
-      (+) __HAL_I2S_FLUSH_RX_DR: Read DR Register to Flush RX Data
 
     [..]
       (@) You can refer to the I2S HAL driver header file for more useful macros
@@ -199,7 +194,6 @@
 
 /* Private typedef -----------------------------------------------------------*/
 /* Private define ------------------------------------------------------------*/
-#define I2S_TIMEOUT_FLAG          100U         /*!< Timeout 100 ms            */
 /* Private macro -------------------------------------------------------------*/
 /* Private variables ---------------------------------------------------------*/
 /* Private function prototypes -----------------------------------------------*/
@@ -303,12 +297,12 @@ HAL_StatusTypeDef HAL_I2S_Init(I2S_HandleTypeDef *hi2s)
     hi2s->RxCpltCallback       = HAL_I2S_RxCpltCallback;          /* Legacy weak RxCpltCallback       */
 #if defined (SPI_I2S_FULLDUPLEX_SUPPORT)
     hi2s->TxRxCpltCallback     = HAL_I2SEx_TxRxCpltCallback;      /* Legacy weak TxRxCpltCallback     */
-#endif /* SPI_I2S_FULLDUPLEX_SUPPORT */
+#endif
     hi2s->TxHalfCpltCallback   = HAL_I2S_TxHalfCpltCallback;      /* Legacy weak TxHalfCpltCallback   */
     hi2s->RxHalfCpltCallback   = HAL_I2S_RxHalfCpltCallback;      /* Legacy weak RxHalfCpltCallback   */
 #if defined (SPI_I2S_FULLDUPLEX_SUPPORT)
     hi2s->TxRxHalfCpltCallback = HAL_I2SEx_TxRxHalfCpltCallback;  /* Legacy weak TxRxHalfCpltCallback */
-#endif /* SPI_I2S_FULLDUPLEX_SUPPORT */
+#endif
     hi2s->ErrorCallback        = HAL_I2S_ErrorCallback;           /* Legacy weak ErrorCallback        */
 
     if (hi2s->MspInitCallback == NULL)
@@ -352,7 +346,7 @@ HAL_StatusTypeDef HAL_I2S_Init(I2S_HandleTypeDef *hi2s)
     /* I2S standard */
     if (hi2s->Init.Standard <= I2S_STANDARD_LSB)
     {
-      /* In I2S standard packet length is multiplied by 2 */
+      /* In I2S standard packet lenght is multiplied by 2 */
       packetlength = packetlength * 2U;
     }
 
@@ -368,7 +362,7 @@ HAL_StatusTypeDef HAL_I2S_Init(I2S_HandleTypeDef *hi2s)
     }
 #else
     i2sclk = HAL_RCCEx_GetPeriphCLKFreq(RCC_PERIPHCLK_I2S);
-#endif /* I2S_APB1_APB2_FEATURE */
+#endif
 
     /* Compute the Real divider depending on the MCLK output state, with a floating point */
     if (hi2s->Init.MCLKOutput == I2S_MCLKOUTPUT_ENABLE)
@@ -469,11 +463,9 @@ HAL_StatusTypeDef HAL_I2S_Init(I2S_HandleTypeDef *hi2s)
     }
 
     /* Configure the I2S Slave with the I2S Master parameter values */
-    tmpreg |= (uint16_t)((uint16_t)SPI_I2SCFGR_I2SMOD    | \
-                         (uint16_t)tmp                   | \
-                         (uint16_t)hi2s->Init.Standard   | \
-                         (uint16_t)hi2s->Init.DataFormat | \
-                         (uint16_t)hi2s->Init.CPOL);
+    tmpreg |= (uint16_t)((uint16_t)SPI_I2SCFGR_I2SMOD | (uint16_t)(tmp | \
+                         (uint16_t)(hi2s->Init.Standard | (uint16_t)(hi2s->Init.DataFormat | \
+                                    (uint16_t)hi2s->Init.CPOL))));
 
     /* Write to SPIx I2SCFGR */
     WRITE_REG(I2SxEXT(hi2s->Instance)->I2SCFGR, tmpreg);
@@ -603,7 +595,7 @@ HAL_StatusTypeDef HAL_I2S_RegisterCallback(I2S_HandleTypeDef *hi2s, HAL_I2S_Call
       case HAL_I2S_TX_RX_COMPLETE_CB_ID :
         hi2s->TxRxCpltCallback = pCallback;
         break;
-#endif /* SPI_I2S_FULLDUPLEX_SUPPORT */
+#endif
 
       case HAL_I2S_TX_HALF_COMPLETE_CB_ID :
         hi2s->TxHalfCpltCallback = pCallback;
@@ -617,7 +609,7 @@ HAL_StatusTypeDef HAL_I2S_RegisterCallback(I2S_HandleTypeDef *hi2s, HAL_I2S_Call
       case HAL_I2S_TX_RX_HALF_COMPLETE_CB_ID :
         hi2s->TxRxHalfCpltCallback = pCallback;
         break;
-#endif /* SPI_I2S_FULLDUPLEX_SUPPORT */
+#endif
 
       case HAL_I2S_ERROR_CB_ID :
         hi2s->ErrorCallback = pCallback;
@@ -706,7 +698,7 @@ HAL_StatusTypeDef HAL_I2S_UnRegisterCallback(I2S_HandleTypeDef *hi2s, HAL_I2S_Ca
       case HAL_I2S_TX_RX_COMPLETE_CB_ID :
         hi2s->TxRxCpltCallback = HAL_I2SEx_TxRxCpltCallback;          /* Legacy weak TxRxCpltCallback     */
         break;
-#endif /* SPI_I2S_FULLDUPLEX_SUPPORT */
+#endif
 
       case HAL_I2S_TX_HALF_COMPLETE_CB_ID :
         hi2s->TxHalfCpltCallback = HAL_I2S_TxHalfCpltCallback;        /* Legacy weak TxHalfCpltCallback   */
@@ -720,7 +712,7 @@ HAL_StatusTypeDef HAL_I2S_UnRegisterCallback(I2S_HandleTypeDef *hi2s, HAL_I2S_Ca
       case HAL_I2S_TX_RX_HALF_COMPLETE_CB_ID :
         hi2s->TxRxHalfCpltCallback = HAL_I2SEx_TxRxHalfCpltCallback;  /* Legacy weak TxRxHalfCpltCallback */
         break;
-#endif /* SPI_I2S_FULLDUPLEX_SUPPORT */
+#endif
 
       case HAL_I2S_ERROR_CB_ID :
         hi2s->ErrorCallback = HAL_I2S_ErrorCallback;                  /* Legacy weak ErrorCallback        */
@@ -833,7 +825,7 @@ HAL_StatusTypeDef HAL_I2S_UnRegisterCallback(I2S_HandleTypeDef *hi2s, HAL_I2S_Ca
   * @note   When a 16-bit data frame or a 16-bit data frame extended is selected during the I2S
   *         configuration phase, the Size parameter means the number of 16-bit data length
   *         in the transaction and when a 24-bit data frame or a 32-bit data frame is selected
-  *         the Size parameter means the number of 24-bit or 32-bit data length.
+  *         the Size parameter means the number of 16-bit data length.
   * @param  Timeout Timeout duration
   * @note   The I2S is kept enabled at the end of transaction to avoid the clock de-synchronization
   *         between Master and Slave(example: audio streaming).
@@ -950,7 +942,7 @@ HAL_StatusTypeDef HAL_I2S_Transmit(I2S_HandleTypeDef *hi2s, uint16_t *pData, uin
   * @note   When a 16-bit data frame or a 16-bit data frame extended is selected during the I2S
   *         configuration phase, the Size parameter means the number of 16-bit data length
   *         in the transaction and when a 24-bit data frame or a 32-bit data frame is selected
-  *         the Size parameter means the number of 24-bit or 32-bit data length.
+  *         the Size parameter means the number of 16-bit data length.
   * @param  Timeout Timeout duration
   * @note   The I2S is kept enabled at the end of transaction to avoid the clock de-synchronization
   *         between Master and Slave(example: audio streaming).
@@ -1051,7 +1043,7 @@ HAL_StatusTypeDef HAL_I2S_Receive(I2S_HandleTypeDef *hi2s, uint16_t *pData, uint
   * @note   When a 16-bit data frame or a 16-bit data frame extended is selected during the I2S
   *         configuration phase, the Size parameter means the number of 16-bit data length
   *         in the transaction and when a 24-bit data frame or a 32-bit data frame is selected
-  *         the Size parameter means the number of 24-bit or 32-bit data length.
+  *         the Size parameter means the number of 16-bit data length.
   * @note   The I2S is kept enabled at the end of transaction to avoid the clock de-synchronization
   *         between Master and Slave(example: audio streaming).
   * @retval HAL status
@@ -1115,7 +1107,7 @@ HAL_StatusTypeDef HAL_I2S_Transmit_IT(I2S_HandleTypeDef *hi2s, uint16_t *pData, 
   * @note   When a 16-bit data frame or a 16-bit data frame extended is selected during the I2S
   *         configuration phase, the Size parameter means the number of 16-bit data length
   *         in the transaction and when a 24-bit data frame or a 32-bit data frame is selected
-  *         the Size parameter means the number of 24-bit or 32-bit data length.
+  *         the Size parameter means the number of 16-bit data length.
   * @note   The I2S is kept enabled at the end of transaction to avoid the clock de-synchronization
   *         between Master and Slave(example: audio streaming).
   * @note   It is recommended to use DMA for the I2S receiver to avoid de-synchronization
@@ -1181,7 +1173,7 @@ HAL_StatusTypeDef HAL_I2S_Receive_IT(I2S_HandleTypeDef *hi2s, uint16_t *pData, u
   * @note   When a 16-bit data frame or a 16-bit data frame extended is selected during the I2S
   *         configuration phase, the Size parameter means the number of 16-bit data length
   *         in the transaction and when a 24-bit data frame or a 32-bit data frame is selected
-  *         the Size parameter means the number of 24-bit or 32-bit data length.
+  *         the Size parameter means the number of 16-bit data length.
   * @note   The I2S is kept enabled at the end of transaction to avoid the clock de-synchronization
   *         between Master and Slave(example: audio streaming).
   * @retval HAL status
@@ -1272,7 +1264,7 @@ HAL_StatusTypeDef HAL_I2S_Transmit_DMA(I2S_HandleTypeDef *hi2s, uint16_t *pData,
   * @note   When a 16-bit data frame or a 16-bit data frame extended is selected during the I2S
   *         configuration phase, the Size parameter means the number of 16-bit data length
   *         in the transaction and when a 24-bit data frame or a 32-bit data frame is selected
-  *         the Size parameter means the number of 24-bit or 32-bit data length.
+  *         the Size parameter means the number of 16-bit data length.
   * @note   The I2S is kept enabled at the end of transaction to avoid the clock de-synchronization
   *         between Master and Slave(example: audio streaming).
   * @retval HAL status
@@ -1462,9 +1454,6 @@ HAL_StatusTypeDef HAL_I2S_DMAResume(I2S_HandleTypeDef *hi2s)
   */
 HAL_StatusTypeDef HAL_I2S_DMAStop(I2S_HandleTypeDef *hi2s)
 {
-#if defined (SPI_I2S_FULLDUPLEX_SUPPORT)
-  uint32_t tickstart;
-#endif /* SPI_I2S_FULLDUPLEX_SUPPORT */
   HAL_StatusTypeDef errorcode = HAL_OK;
   /* The Lock is not implemented on this API to allow the user application
      to call the HAL SPI API under callbacks HAL_I2S_TxCpltCallback() or HAL_I2S_RxCpltCallback()
@@ -1472,180 +1461,46 @@ HAL_StatusTypeDef HAL_I2S_DMAStop(I2S_HandleTypeDef *hi2s)
      and the correspond call back is executed HAL_I2S_TxCpltCallback() or HAL_I2S_RxCpltCallback()
      */
 
-  if ((hi2s->Init.Mode == I2S_MODE_MASTER_TX) || (hi2s->Init.Mode == I2S_MODE_SLAVE_TX))
+  /* Disable the I2S Tx/Rx DMA requests */
+  CLEAR_BIT(hi2s->Instance->CR2, SPI_CR2_TXDMAEN);
+  CLEAR_BIT(hi2s->Instance->CR2, SPI_CR2_RXDMAEN);
+
+  /* Abort the I2S DMA tx Stream/Channel */
+  if (hi2s->hdmatx != NULL)
   {
-    /* Abort the I2S DMA tx Stream/Channel */
-    if (hi2s->hdmatx != NULL)
+    /* Disable the I2S DMA tx Stream/Channel */
+    if (HAL_OK != HAL_DMA_Abort(hi2s->hdmatx))
     {
-      /* Disable the I2S DMA tx Stream/Channel */
-      if (HAL_OK != HAL_DMA_Abort(hi2s->hdmatx))
-      {
-        SET_BIT(hi2s->ErrorCode, HAL_I2S_ERROR_DMA);
-        errorcode = HAL_ERROR;
-      }
-    }
-
-    /* Wait until TXE flag is set */
-    if (I2S_WaitFlagStateUntilTimeout(hi2s, I2S_FLAG_TXE, SET, I2S_TIMEOUT_FLAG) != HAL_OK)
-    {
-      /* Set the error code */
-      SET_BIT(hi2s->ErrorCode, HAL_I2S_ERROR_TIMEOUT);
-      hi2s->State = HAL_I2S_STATE_READY;
-      errorcode   = HAL_ERROR;
-    }
-
-    /* Wait until BSY flag is Reset */
-    if (I2S_WaitFlagStateUntilTimeout(hi2s, I2S_FLAG_BSY, RESET, I2S_TIMEOUT_FLAG) != HAL_OK)
-    {
-      /* Set the error code */
-      SET_BIT(hi2s->ErrorCode, HAL_I2S_ERROR_TIMEOUT);
-      hi2s->State = HAL_I2S_STATE_READY;
-      errorcode   = HAL_ERROR;
-    }
-
-    /* Disable I2S peripheral */
-    __HAL_I2S_DISABLE(hi2s);
-
-    /* Clear UDR flag */
-    __HAL_I2S_CLEAR_UDRFLAG(hi2s);
-
-    /* Disable the I2S Tx DMA requests */
-    CLEAR_BIT(hi2s->Instance->CR2, SPI_CR2_TXDMAEN);
-
-#if defined (SPI_I2S_FULLDUPLEX_SUPPORT)
-
-    if (hi2s->State == HAL_I2S_STATE_BUSY_TX_RX)
-    {
-      /* Abort the I2S DMA rx Stream/Channel */
-      if (hi2s->hdmarx != NULL)
-      {
-        /* Disable the I2S DMA rx Stream/Channel */
-        if (HAL_OK != HAL_DMA_Abort(hi2s->hdmarx))
-        {
-          SET_BIT(hi2s->ErrorCode, HAL_I2S_ERROR_DMA);
-          errorcode = HAL_ERROR;
-        }
-      }
-
-      /* Disable I2Sext peripheral */
-      __HAL_I2SEXT_DISABLE(hi2s);
-
-      /* Clear OVR flag */
-      __HAL_I2SEXT_CLEAR_OVRFLAG(hi2s);
-
-      /* Disable the I2SxEXT DMA request */
-      CLEAR_BIT(I2SxEXT(hi2s->Instance)->CR2, SPI_CR2_RXDMAEN);
-
-      if (hi2s->Init.Mode == I2S_MODE_SLAVE_TX)
-      {
-        /* Set the error code */
-        SET_BIT(hi2s->ErrorCode, HAL_I2S_ERROR_BUSY_LINE_RX);
-
-        /* Set the I2S State ready */
-        hi2s->State = HAL_I2S_STATE_READY;
-        errorcode = HAL_ERROR;
-      }
-      else
-      {
-        /* Read DR to Flush RX Data */
-        READ_REG(I2SxEXT(hi2s->Instance)->DR);
-      }
-    }
-#endif /* SPI_I2S_FULLDUPLEX_SUPPORT */
-  }
-
-  else if ((hi2s->Init.Mode == I2S_MODE_MASTER_RX) || (hi2s->Init.Mode == I2S_MODE_SLAVE_RX))
-  {
-    /* Abort the I2S DMA rx Stream/Channel */
-    if (hi2s->hdmarx != NULL)
-    {
-      /* Disable the I2S DMA rx Stream/Channel */
-      if (HAL_OK != HAL_DMA_Abort(hi2s->hdmarx))
-      {
-        SET_BIT(hi2s->ErrorCode, HAL_I2S_ERROR_DMA);
-        errorcode = HAL_ERROR;
-      }
-    }
-#if defined (SPI_I2S_FULLDUPLEX_SUPPORT)
-
-    if (hi2s->State == HAL_I2S_STATE_BUSY_TX_RX)
-    {
-      /* Abort the I2S DMA tx Stream/Channel */
-      if (hi2s->hdmatx != NULL)
-      {
-        /* Disable the I2S DMA tx Stream/Channel */
-        if (HAL_OK != HAL_DMA_Abort(hi2s->hdmatx))
-        {
-          SET_BIT(hi2s->ErrorCode, HAL_I2S_ERROR_DMA);
-          errorcode = HAL_ERROR;
-        }
-      }
-
-      tickstart = HAL_GetTick();
-
-      /* Wait until TXE flag is set */
-      while (__HAL_I2SEXT_GET_FLAG(hi2s, I2S_FLAG_TXE) != SET)
-      {
-        if (((HAL_GetTick() - tickstart) > I2S_TIMEOUT_FLAG))
-        {
-          /* Set the error code */
-          SET_BIT(hi2s->ErrorCode, HAL_I2S_ERROR_TIMEOUT);
-
-          /* Set the I2S State ready */
-          hi2s->State = HAL_I2S_STATE_READY;
-          errorcode   = HAL_ERROR;
-        }
-      }
-
-      /* Wait until BSY flag is Reset */
-      while (__HAL_I2SEXT_GET_FLAG(hi2s, I2S_FLAG_BSY) != RESET)
-      {
-        if (((HAL_GetTick() - tickstart) > I2S_TIMEOUT_FLAG))
-        {
-          /* Set the error code */
-          SET_BIT(hi2s->ErrorCode, HAL_I2S_ERROR_TIMEOUT);
-
-          /* Set the I2S State ready */
-          hi2s->State = HAL_I2S_STATE_READY;
-          errorcode   = HAL_ERROR;
-        }
-      }
-
-      /* Disable I2Sext peripheral */
-      __HAL_I2SEXT_DISABLE(hi2s);
-
-      /* Clear UDR flag */
-      __HAL_I2SEXT_CLEAR_UDRFLAG(hi2s);
-
-      /* Disable the I2SxEXT DMA request */
-      CLEAR_BIT(I2SxEXT(hi2s->Instance)->CR2, SPI_CR2_TXDMAEN);
-    }
-#endif /* SPI_I2S_FULLDUPLEX_SUPPORT */
-
-    /* Disable I2S peripheral */
-    __HAL_I2S_DISABLE(hi2s);
-
-    /* Clear OVR flag */
-    __HAL_I2S_CLEAR_OVRFLAG(hi2s);
-
-    /* Disable the I2S Rx DMA request */
-    CLEAR_BIT(hi2s->Instance->CR2, SPI_CR2_RXDMAEN);
-
-    if (hi2s->Init.Mode == I2S_MODE_SLAVE_RX)
-    {
-      /* Set the error code */
-      SET_BIT(hi2s->ErrorCode, HAL_I2S_ERROR_BUSY_LINE_RX);
-
-      /* Set the I2S State ready */
-      hi2s->State = HAL_I2S_STATE_READY;
+      SET_BIT(hi2s->ErrorCode, HAL_I2S_ERROR_DMA);
       errorcode = HAL_ERROR;
     }
-    else
+  }
+
+  /* Abort the I2S DMA rx Stream/Channel */
+  if (hi2s->hdmarx != NULL)
+  {
+    /* Disable the I2S DMA rx Stream/Channel */
+    if (HAL_OK != HAL_DMA_Abort(hi2s->hdmarx))
     {
-      /* Read DR to Flush RX Data */
-      READ_REG((hi2s->Instance)->DR);
+      SET_BIT(hi2s->ErrorCode, HAL_I2S_ERROR_DMA);
+      errorcode = HAL_ERROR;
     }
   }
+#if defined (SPI_I2S_FULLDUPLEX_SUPPORT)
+  /* In case of Full-Duplex, disable the I2SxEXT Tx/Rx DMA requests*/
+  if (hi2s->State == HAL_I2S_STATE_BUSY_TX_RX)
+  {
+    /* Disable the I2SxEXT DMA requests */
+    CLEAR_BIT(I2SxEXT(hi2s->Instance)->CR2, SPI_CR2_TXDMAEN);
+    CLEAR_BIT(I2SxEXT(hi2s->Instance)->CR2, SPI_CR2_RXDMAEN);
+
+    /* Disable I2Sext peripheral */
+    __HAL_I2SEXT_DISABLE(hi2s);
+  }
+#endif /* SPI_I2S_FULLDUPLEX_SUPPORT */
+
+  /* Disable I2S peripheral */
+  __HAL_I2S_DISABLE(hi2s);
 
   hi2s->State = HAL_I2S_STATE_READY;
 
