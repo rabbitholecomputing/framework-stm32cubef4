@@ -55,7 +55,7 @@ typedef enum
   HAL_SD_STATE_BUSY                   = 0x00000003U,  /*!< SD process ongoing                  */
   HAL_SD_STATE_PROGRAMMING            = 0x00000004U,  /*!< SD Programming State                */
   HAL_SD_STATE_RECEIVING              = 0x00000005U,  /*!< SD Receiving State                  */
-  HAL_SD_STATE_TRANSFER               = 0x00000006U,  /*!< SD Transfer State                  */
+  HAL_SD_STATE_TRANSFER               = 0x00000006U,  /*!< SD Transfert State                  */
   HAL_SD_STATE_ERROR                  = 0x0000000FU   /*!< SD is in error state                */
 }HAL_SD_StateTypeDef;
 /** 
@@ -614,7 +614,8 @@ HAL_StatusTypeDef HAL_SD_ReadBlocks_IT(SD_HandleTypeDef *hsd, uint8_t *pData, ui
 HAL_StatusTypeDef HAL_SD_WriteBlocks_IT(SD_HandleTypeDef *hsd, uint8_t *pData, uint32_t BlockAdd, uint32_t NumberOfBlocks);
 /* Non-Blocking mode: DMA */
 HAL_StatusTypeDef HAL_SD_ReadBlocks_DMA(SD_HandleTypeDef *hsd, uint8_t *pData, uint32_t BlockAdd, uint32_t NumberOfBlocks);
-HAL_StatusTypeDef HAL_SD_WriteBlocks_DMA(SD_HandleTypeDef *hsd, uint8_t *pData, uint32_t BlockAdd, uint32_t NumberOfBlocks);
+HAL_StatusTypeDef HAL_SD_WriteBlocks_DMA(SD_HandleTypeDef *hsd, uint32_t BlockAdd, uint32_t NumberOfBlocks);
+HAL_StatusTypeDef HAL_SD_WriteBlocks_Data(SD_HandleTypeDef *hsd, uint8_t *pData);
 
 void HAL_SD_IRQHandler(SD_HandleTypeDef *hsd);
 
