@@ -301,9 +301,7 @@ typedef struct
 #define SDMMC_SINGLE_BUS_SUPPORT                      0x00010000U
 #define SDMMC_CARD_LOCKED                             0x02000000U
 
-#ifndef SDMMC_DATATIMEOUT
 #define SDMMC_DATATIMEOUT                             0xFFFFFFFFU
-#endif /* SDMMC_DATATIMEOUT */
 
 #define SDMMC_0TO7BITS                                0x000000FFU
 #define SDMMC_8TO15BITS                               0x0000FF00U
@@ -457,7 +455,7 @@ typedef struct
   * @}
   */
 
-/** @defgroup SDIO_LL_Data_Length Data Length
+/** @defgroup SDIO_LL_Data_Length Data Lenght
   * @{
   */
 #define IS_SDIO_DATA_LENGTH(LENGTH) ((LENGTH) <= 0x01FFFFFFU)
@@ -1076,6 +1074,7 @@ uint32_t SDMMC_CmdReadSingleBlock(SDIO_TypeDef *SDIOx, uint32_t ReadAdd);
 uint32_t SDMMC_CmdReadMultiBlock(SDIO_TypeDef *SDIOx, uint32_t ReadAdd);
 uint32_t SDMMC_CmdWriteSingleBlock(SDIO_TypeDef *SDIOx, uint32_t WriteAdd);
 uint32_t SDMMC_CmdWriteMultiBlock(SDIO_TypeDef *SDIOx, uint32_t WriteAdd);
+uint32_t SDMMC_CmdSetBlockCount(SDIO_TypeDef *SDIOx, uint32_t appCmdArg, uint32_t blockCount);
 uint32_t SDMMC_CmdEraseStartAdd(SDIO_TypeDef *SDIOx, uint32_t StartAdd);
 uint32_t SDMMC_CmdSDEraseStartAdd(SDIO_TypeDef *SDIOx, uint32_t StartAdd);
 uint32_t SDMMC_CmdEraseEndAdd(SDIO_TypeDef *SDIOx, uint32_t EndAdd);
@@ -1091,7 +1090,6 @@ uint32_t SDMMC_CmdBusWidth(SDIO_TypeDef *SDIOx, uint32_t BusWidth);
 uint32_t SDMMC_CmdSendSCR(SDIO_TypeDef *SDIOx);
 uint32_t SDMMC_CmdSendCID(SDIO_TypeDef *SDIOx);
 uint32_t SDMMC_CmdSendCSD(SDIO_TypeDef *SDIOx, uint32_t Argument);
-uint32_t SDMMC_CmdSendEXTCSD(SDIO_TypeDef *SDIOx, uint32_t Argument);
 uint32_t SDMMC_CmdSetRelAdd(SDIO_TypeDef *SDIOx, uint16_t *pRCA);
 uint32_t SDMMC_CmdSendStatus(SDIO_TypeDef *SDIOx, uint32_t Argument);
 uint32_t SDMMC_CmdStatusRegister(SDIO_TypeDef *SDIOx);
